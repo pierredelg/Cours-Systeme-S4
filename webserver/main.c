@@ -1,6 +1,10 @@
 # include <stdio.h>
 # include <string.h>
-int main ( int argc , char ** argv )
+#include "socket.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int main ()
 {
 
 
@@ -17,15 +21,28 @@ return 0;
 */
 
 
-int fd;
+/*int fd;
 char buffer[128];
 ssize_t ret;
+*/
+
+  int socket_serveur = creer_serveur(8080);
+  printf("%d",socket_serveur);
 
 
-creer_serveur(8080);
+  listen(socket_serveur,10); 
 
-fd = open(,O_RONLY);
 
-if(fd == -1 ){
-	fprintf(stderr,"Erreur d'ouverture");
+  
+  
+  
+  int socket_client ;
+  socket_client = accept(socket_serveur , NULL, NULL);
+  if (socket_client == -1)
+    {
+      perror ( " accept " );
+      /* traitement d ’ erreur */
+    }
+
+  printf("accept");
 }
