@@ -1,0 +1,5 @@
+			REPONSES	
+
+		3.2.1 Test de votre programme
+
+1)Le serveur retourne une erreur lors de l'appel à la fonction listen() car l'adresse est deja utilisée.
