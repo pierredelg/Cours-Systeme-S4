@@ -43,6 +43,7 @@ int main (){
   int i;
   int socket_serveur = creer_serveur(8080);
   int lecture;
+  int pid;
 
   //On ecoute met le serveur en écoute
   if(listen(socket_serveur,10) == -1){
@@ -51,48 +52,55 @@ int main (){
   }
   //On récupere le fd client 
  
-  //while(1){
+  while(1){
 
     //On accept un nouveau client et on garde le fd du client connecté
     socket_client = accept(socket_serveur , NULL, NULL);
-    
+
     if (socket_client == -1){
-        perror("accept");
-        return -1;
-    }
+          perror("accept");
+          return -1;
+      }
+    pid = fork();
+    
+    if (pid == 0){
+
     //on écrit sur le socket client
     write(socket_client, buffer, strlen(buffer));
-    
+
     //On reinitialise le buffer
     memset(buffer,0,strlen(buffer));
 
-    while(1){
-    //On récupere ce que le client envoi 
-      lecture = read(socket_client,buffer,128);
+      while(1){
+      //On récupere ce que le client envoi 
+        lecture = read(socket_client,buffer,128);
 
-      if ((lecture-1) != 0){
+        if (lecture > 0){
 
-        //On affiche le résultat de la lecture
-        for(i = 0 ; i < lecture ; i++ ){
-            printf("%c",buffer[i]);
+          //On affiche le résultat de la lecture
+          for(i = 0 ; i < lecture ; i++ ){
+              printf("%c",buffer[i]);
+          }
+
+          //On écrit dans le socket client afin de renvoyer le message lu par le serveur
+          write(socket_client, buffer, strlen(buffer));
+
+          //on réinitialise le buffer 
+          memset(buffer,0,strlen(buffer));
         }
-
-        //On écrit dans le socket client afin de renvoyer le message lu par le serveur
-        write(socket_client, buffer, strlen(buffer));
-
-        //on réinitialise le buffer 
-        memset(buffer,0,strlen(buffer));
+        else{
+          printf("fin\n");
+          break;
+        }
       }
-      else{
-        break;
-      }
+    }else{
+      close(socket_client);
     }
-  //} 
+  } 
   //On ferme les sockets
   printf("Fermeture de la socket serveur\n");
   close(socket_serveur);
-  printf("Fermeture de la socket client\n");
-  close(socket_client);
+  
 
   /* utiliser la commande nc localhost 8080 pour tester*/
 }
