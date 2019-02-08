@@ -4,6 +4,16 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
+
+
+void initialiser_signaux(){
+  
+  if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
+    perror ("signal");
+  }
+
+}
 
 int main (){
 
@@ -22,7 +32,8 @@ int main (){
 
                     /*coté serveur*/
 
-
+  initialiser_signaux();
+  
   //On crée le socket serveur sur le port 8080
   //methode socket() + bind()
   int socket_client;
