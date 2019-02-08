@@ -9,7 +9,10 @@ int creer_serveur(int port){
 
   int socket_serveur ;
 
-  socket_serveur = socket ( AF_INET , SOCK_STREAM , 0);
+  //On crée le socket serveur 
+  //AF_INET (ipv4)
+  //SOCK_STREAM (TCP)
+  socket_serveur = socket (AF_INET,SOCK_STREAM, 0);
 
   if ( socket_serveur == -1)
     {
@@ -19,9 +22,11 @@ int creer_serveur(int port){
     }
   /* Utilisation de la socket serveur */
 
-  struct sockaddr_in saddr ;
-  saddr.sin_family = AF_INET ; /* Socket ipv4 */
-  saddr.sin_port = htons (port); /* Port d ’écoute */
+  struct sockaddr_in saddr;
+
+  //On redéfini les éléments de la structure sockaddr_in
+  saddr.sin_family = AF_INET; /* Socket ipv4 */
+  saddr.sin_port = htons (port);/* Port d ’écoute */
   saddr.sin_addr.s_addr = INADDR_ANY ; /* écoute sur toutes les interfaces */
 
   if ( bind(socket_serveur , (struct sockaddr*)&saddr , sizeof(saddr)) == -1)

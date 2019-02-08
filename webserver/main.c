@@ -25,12 +25,13 @@ int main (){
 
   //On crée le socket serveur sur le port 8080
   //methode socket() + bind()
-  int socket_client ;
+  int socket_client;
+  
   char buffer[128] = "Salut tout la monde\n";
+
   int i;
   int socket_serveur = creer_serveur(8080);
-
-  printf("%d",socket_serveur);
+  int lecture;
 
   //On ecoute met le serveur en écoute
   if(listen(socket_serveur,10) == -1){
@@ -39,7 +40,9 @@ int main (){
   }
   //On récupere le fd client 
  
-  while(1){
+  //while(1){
+
+    //On accept un nouveau client et on garde le fd du client connecté
     socket_client = accept(socket_serveur , NULL, NULL);
     
     if (socket_client == -1){
@@ -47,17 +50,33 @@ int main (){
         return -1;
     }
     //on écrit sur le socket client
-    write(socket_client, buffer, 128);
+    write(socket_client, buffer, strlen(buffer));
+    
+    //On reinitialise le buffer
+    memset(buffer,0,strlen(buffer));
 
+    while(1){
     //On récupere ce que le client envoi 
-    read(socket_client,buffer,128);
+      lecture = read(socket_client,buffer,128);
 
-    //On affiche le résultat de la lecture
-    for(i = 0 ; i < 128 ; i++ ){
-        printf("%c",buffer[i]);
+      if (lecture != 0){
+
+        //On affiche le résultat de la lecture
+        for(i = 0 ; i < lecture ; i++ ){
+            printf("%c",buffer[i]);
+        }
+
+        //On écrit dans le socket client afin de renvoyer le message lu par le serveur
+        write(socket_client, buffer, strlen(buffer));
+
+        //on réinitialise le buffer 
+        memset(buffer,0,strlen(buffer));
+      }
+      else{
+        break;
+      }
     }
-
-  } 
+  //} 
   //On ferme les sockets
   printf("Fermeture de la socket serveur\n");
   close(socket_serveur);
