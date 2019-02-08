@@ -2,8 +2,15 @@
 
 		3.2.1 Test de votre programme
 
-1)Le serveur retourne une erreur lors de l'appel à la fonction listen() car l'adresse est deja utilisée.
+1)Le serveur retourne une erreur (l’appel à bind échoue) car l'adresse est deja utilisée sur ce numéro de port.
+	Le protocole TCP bloque la connexion au port du serveur afin de peut-être recevoir des paquets en retard. 
+	Aprés quelques secondes le serveur sera de nouveau disponible.
 
-2)L'option z de la commande "nc" spécifie que nc doit chercher les démons d'écoute sans leur envoyer de données, concrètement "nc" va se connecter au client et tout de suite derrière va couper cette connexion. Cela peut être utilisé pour indiquer à "nc" de signaler les ports ouverts plutôt que d’établir une connexion.
+
+2)Lors du lancement de la commande le message de bienvenue ne s'affiche pas et la commande s'arrete sans message d'erreur.L'option z de la commande "nc" spécifie que nc doit chercher les démons d'écoute sans leur envoyer de données, concrètement "nc" va se connecter au client et tout de suite derrière va couper cette connexion. Cela peut être utilisé pour indiquer à "nc" de signaler les ports ouverts plutôt que d’établir une connexion.
 
 
+3)Avec la commande telnet ::1 8080 on essaye de se connecter au serveur avec une adresse ipv6 alors que le serveur est programmé pour de l'ipv4.
+Donc la connexion est refusée.
+
+4)La connexion se fait sur les deux clients mais le serveur réponds uniquement au premier client connecté.Car le accept ne se fait qu'une fois pour le premier client.Le serveur ne gère pas la deuxieme connexion au serveur.
