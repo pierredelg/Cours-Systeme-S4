@@ -59,7 +59,7 @@ int main (){
     //On récupere ce que le client envoi 
       lecture = read(socket_client,buffer,128);
 
-      if (lecture != 0){
+      if ((lecture-1) != 0){
 
         //On affiche le résultat de la lecture
         for(i = 0 ; i < lecture ; i++ ){
