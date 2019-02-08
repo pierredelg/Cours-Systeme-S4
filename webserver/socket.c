@@ -28,13 +28,22 @@ int creer_serveur(int port){
   saddr.sin_family = AF_INET; /* Socket ipv4 */
   saddr.sin_port = htons (port);/* Port d ’écoute */
   saddr.sin_addr.s_addr = INADDR_ANY ; /* écoute sur toutes les interfaces */
-
-  if ( bind(socket_serveur , (struct sockaddr*)&saddr , sizeof(saddr)) == -1)
-    {
+  int optval = 1;
+  
+  //On modifie l'option du socket serveur pour autoriser une connexion au serveur sans timeout
+  //SOL_SOCKET (option niveau socket)
+  //SO_REUSEADDR(option permettant de refaire un appel à bind())
+  //optval ( int qui doit donner un nombre différent de 0)
+  
+  if ( setsockopt (socket_serveur,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(int)) == -1){
+    perror ("Can not set SO_REUSEADDR option");
+  }
+  
+  if ( bind(socket_serveur , (struct sockaddr*)&saddr , sizeof(saddr)) == -1){
       /* traitement de l ’ erreur */
       perror ( "bind socker_serveur" );
       return -1;
-    }
+  }
 	
   return socket_serveur;
 }
