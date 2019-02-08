@@ -3,3 +3,7 @@
 		3.2.1 Test de votre programme
 
 1)Le serveur retourne une erreur lors de l'appel à la fonction listen() car l'adresse est deja utilisée.
+
+2)L'option z de la commande "nc" spécifie que nc doit chercher les démons d'écoute sans leur envoyer de données, concrètement "nc" va se connecter au client et tout de suite derrière va couper cette connexion. Cela peut être utilisé pour indiquer à "nc" de signaler les ports ouverts plutôt que d’établir une connexion.
+
+
