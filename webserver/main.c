@@ -61,8 +61,10 @@ int main (){
           perror("accept");
           return -1;
       }
+    //On crée un nouveau processus
     pid = fork();
     
+    //Processus fils
     if (pid == 0){
 
     //on écrit sur le socket client
@@ -93,7 +95,9 @@ int main (){
           break;
         }
       }
+    //Processus pere
     }else{
+      //On ferme le socket client
       close(socket_client);
     }
   } 
