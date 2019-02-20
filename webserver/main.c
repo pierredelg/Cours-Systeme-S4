@@ -10,21 +10,22 @@
 
 void traitement_signal(int sig){
 
-    pid_t idFin;
+    pid_t pidFin;
     int statut;
 
     printf("Signal %d reçu\n",sig); //SIGCHLD = 17
 
-    //On lance le waitpid afin de terminer les processus zombies fils 
-    idFin = waitpid(-1, &statut, WNOHANG);
+    //On lance le waitpid afin de terminer les processus zombies fils
+
+    pidFin = waitpid(-1, &statut, WNOHANG);
 
     //gestion erreur waitpid
-    if (idFin == -1) {           
+    if (pidFin == -1) {           
         perror("erreur du waitpid");
     }
     //On verifie le statut de fin du fils
     if (WIFEXITED(statut)){
-        printf("Processus fils terminé\n");
+        printf("Processus fils n°%d terminé\n",pidFin);
     }
 }
 
@@ -62,25 +63,13 @@ void initialiser_signaux(){
 
 int main (){
 
-
-    /* Arnold Robbins in the LJ of February ’95 , describing RCS */
-
-    /* Main de départ
-
-    if ( argc > 1 && strcmp ( argv [1] , "-advice" ) == 0) {
-    printf ( " Don ’t Panic !\n " );
-    return 42;
-    }
-    printf ( " Need an advice ?\n " );
-    return 0;
-    }
-    
-    */
-
     initialiser_signaux();
 
-    char buffer[128] = "Salut tout la monde\n";
-    int lecture,socket_client,pid,i;
+    char buffer[128] = "Bienvenue sur le serveur Pawnee\n";
+    int socket_client;
+    int pid;
+    int i;
+    FILE *fdClient;
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -105,37 +94,39 @@ int main (){
         //On crée un nouveau processus
         pid = fork();
 
-        
         if (pid == 0){      /*Processus fils*/
-
-        //on écrit sur le socket client
-        write(socket_client, buffer, strlen(buffer));
-
+        
+        //On crée le file descriptor client sur le socket en lecture et en écriture ("w+")
+        fdClient = fdopen(socket_client, "w+");
+        
+        //On écrit sur le client
+        fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
+       
             //On reinitialise le buffer
             memset(buffer,0,strlen(buffer));
 
             while(1){
-                //On récupere ce que le client envoi 
-                lecture = read(socket_client,buffer,128);
 
-                if (lecture > 0){
+                //On récupere les données envoyées par le client
+                if(fgets(buffer, 128, fdClient) != NULL){
 
-                    //On affiche le résultat de la lecture
-                    for(i = 0 ; i < lecture ; i++ ){
+                    //On affiche le résultat de la lecture sur la sortie standard
+                    for(i = 0 ; i < 128 ; i++ ){
                         printf("%c",buffer[i]);
                     }
+                    
+                    //On les renvoie au client
+                    fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
+                    
 
-                    //On écrit dans le socket client afin de renvoyer le message lu par le serveur
-                    write(socket_client, buffer, strlen(buffer));
-
-                    //on réinitialise le buffer 
+                     //On reinitialise le buffer
                     memset(buffer,0,strlen(buffer));
-                }
-                else{
-                    printf("fin\n");
+
+                }else{
+
                     exit(0);
                     break;
-                }
+                }             
             }
         
         }else{      /*Processus père*/
