@@ -39,6 +39,10 @@ int creer_serveur(int port){
     perror ("Can not set SO_REUSEADDR option");
   }
   
+  /*
+    bind() permet d'attacher une socket avec une adresse et un port 
+    une socket ne peut etre attachée qu'avec une seule adresse et un port
+  */
   if ( bind(socket_serveur , (struct sockaddr*)&saddr , sizeof(saddr)) == -1){
       /* traitement de l ’ erreur */
       perror ( "bind socker_serveur" );

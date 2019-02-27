@@ -1,5 +1,9 @@
 			REPONSES	
 
+		
+
+
+
 		3.2.1 Test de votre programme
 
 1)Le serveur retourne une erreur (l’appel à bind échoue) car l'adresse est deja utilisée sur ce numéro de port.
@@ -14,3 +18,24 @@
 Donc la connexion est refusée.
 
 4)La connexion se fait sur les deux clients mais le serveur réponds uniquement au premier client connecté.Car le accept ne se fait qu'une fois pour le premier client.Le serveur ne gère pas la deuxieme connexion au serveur.
+
+
+
+	
+	5.2.1 Manipulations préliminaires
+
+
+3) Voici le message reçu:
+
+	GET / HTTP/1.1
+	Host: localhost:8080
+	User-Agent: curl/7.58.0
+	Accept: */*
+
+
+4)Les trois constituants de la première ligne sont 
+	
+	Le verbe HTTP (GET)
+	Le chemin de la ressource (/)
+	La version du protocole (HTTP/1.1)
+
