@@ -30,12 +30,11 @@ void traitement_signal(int sig){
 }
 
 void initialiser_signaux(){
-<<<<<<< HEAD
+
   
   if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
     perror ("signal");
   }
-=======
 
     /* On utilise la fonction signal() afin de modifier le comportement du programme lors de la réception d'un signal
        les parametres sont donc le signal de réception(SIGPIPE)
@@ -65,7 +64,6 @@ void initialiser_signaux(){
 
         perror("sigaction(SIGCHLD)");
     }
->>>>>>> 1cb18b096f002b2905624de00e2b6db2bca4b009
 }
 
 int main (){
