@@ -96,39 +96,37 @@ int main (){
 
         if (pid == 0){      /*Processus fils*/
         
-        //On crée le file descriptor client sur le socket en lecture et en écriture ("w+")
-        fdClient = fdopen(socket_client, "w+");
+            //On crée le file descriptor client sur le socket en lecture et en écriture ("w+")
+            fdClient = fdopen(socket_client, "w+");
         
-        //On écrit sur le client
-        fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
-       
-            //On reinitialise le buffer
-            memset(buffer,0,strlen(buffer));
-
             while(1){
 
                 //On récupere les données envoyées par le client
                 if(fgets(buffer, 128, fdClient) != NULL){
 
-                    //On affiche le résultat de la lecture sur la sortie standard
-                    for(i = 0 ; i < 128 ; i++ ){
-                        printf("%c",buffer[i]);
+                    if(strcmp(buffer, "GET / HTTP/1.1\r\n") != 0 ){
+
+                        fprintf(fdClient, "%s %s", "<Pawnee>","HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad request\r\n");
+                    }else{
+
+                        //On affiche le résultat de la lecture sur la sortie standard
+                        for(i = 0 ; i < 128 ; i++ ){
+                            printf("%c",buffer[i]);
+                        }
+                        
+                        //On les renvoie au client
+                        fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
+                        
+                         //On reinitialise le buffer
+                        memset(buffer,0,strlen(buffer));
                     }
-                    
-                    //On les renvoie au client
-                    fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
-                    
-
-                     //On reinitialise le buffer
-                    memset(buffer,0,strlen(buffer));
-
                 }else{
 
+                    fclose(fdClient);
                     exit(0);
                     break;
                 }             
             }
-        
         }else{      /*Processus père*/
 
             //On ferme le socket client
