@@ -12,7 +12,6 @@ void initialiser_signaux(){
   if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
     perror ("signal");
   }
-
 }
 
 int main (){
