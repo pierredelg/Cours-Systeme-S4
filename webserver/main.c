@@ -74,9 +74,9 @@ int main (){
     char bufferContenu[128];
     int socket_client;
     int pid;
-    int longueurContenu = 0;
     FILE *fdClient;
     char * nomServeur = "<Pawnee>";
+    char cheminFichier[1024];
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -120,13 +120,10 @@ int main (){
                 //On lit la ligne tant que le contenu est different de "\r\n"
                 while(strcmp(bufferContenu,"\r\n") != 0){
 
-                    memset(bufferContenu,0,strlen(bufferContenu));
-
                     fgets(bufferContenu, 128, fdClient);
-                    
-                    longueurContenu += strlen(bufferContenu);
+            
                 }
-
+                    cheminFichier = 
                     //On compare la premiere ligne et on verifie que "GET / HTTP/1.1\r\n"    
                     if(strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
 
@@ -142,7 +139,6 @@ int main (){
                      //On reinitialise le buffer
                     memset(bufferFirstLine,0,strlen(bufferFirstLine));
                     memset(bufferContenu,0,strlen(bufferContenu));
-                    longueurContenu = 0;
 
                     fclose(fdClient);
                              
