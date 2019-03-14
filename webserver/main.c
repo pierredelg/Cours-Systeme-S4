@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 void traitement_signal(int sig){
 
@@ -71,12 +74,16 @@ int main(){
     initialiser_signaux();
 
     char bufferFirstLine[128] = "Bienvenue sur le serveur Pawnee\n";
-    char bufferContenu[128];
-    int socket_client;
-    int pid;
-    char *nomServeur = "<Pawnee>";
-    FILE *fdClient;
-    //char cheminFichier[1024];
+    char bufferContenu[128] = {" "};
+    int socket_client = 0;
+    int pid = 0;
+    char *nomServeur ="<Pawnee>";
+    FILE *fdClient = NULL;
+    char chemin[128] = {" "} ;
+    int indiceBuffer = 0;
+    int indiceChemin = 0;
+    FILE* fdFichierTrouve = NULL;
+    
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -105,7 +112,13 @@ int main(){
         
             //On crée le file descriptor client sur le socket en lecture et en écriture ("w+")
             fdClient = fdopen(socket_client, "w+");
-        
+
+            if(fdClient == NULL){
+                perror("impossible d'ouvrir le socket");
+                return -1;
+            }
+
+           
             while(1){
 
                 //On récupere la premiere ligne envoyée par le client
@@ -115,28 +128,62 @@ int main(){
                 while(strcmp(bufferContenu,"\r\n") != 0){
 
                     fgets(bufferContenu, 128, fdClient);
-            
-                }
-                    //cheminFichier = 
-                    //On compare la premiere ligne et on verifie que "GET / HTTP/1.1\r\n"    
-                    if(strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
-
-
-                        fprintf(fdClient,"%s\nHTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 14\r\n\r\nTout est OK!\r\n",nomServeur);
-
-                       
-                    }else{
-                        //On envoie un message d'erreur si la requete ne correspond pas au "GET / HTTP/1.1\r\n"
-                        fprintf(fdClient,"%s\nHTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad request\r\n",nomServeur);
-                        
+                    if(strcmp(bufferContenu," \r\n") == 0){
+                        break;
                     }
+                }
+             
+                indiceBuffer = 4;   //Ici l'indice commence à 4 pour récuperer le chemin aprés le GET
+                indiceChemin = 0;
 
-                     //On reinitialise le buffer
-                    memset(bufferFirstLine,0,strlen(bufferFirstLine));
-                    memset(bufferContenu,0,strlen(bufferContenu));
+                //On copie le chemin de la requete GET tant que l'on ne rencontre pas d'espace
+                while(bufferFirstLine[indiceBuffer] != 32){
+                    chemin[indiceChemin] = bufferFirstLine[indiceBuffer];
+                    indiceBuffer++;
+                    indiceChemin++;
+                }
+                
+                //On essaye d'ouvrir le fichier du chemin
+                //Si le fopen retourne NULL c'est que le fichier n'existe pas
+                if(fopen(chemin,"r") == NULL){
+                    printf("Pas de fichier : %s\n",chemin);
+                }
+                
+                //On crée une requete GET valide avec le chemin récuperé
+                char testMethode[128] = "GET ";
+                strcat(testMethode,chemin);
+                strcat(testMethode," HTTP/1.1\r\n");
 
+                //On compare la premiere ligne et on verifie que la requete recue est valide 
+                if(strcmp(bufferFirstLine,testMethode) == 0){
+                    //si le fichier existe ou si on demande simplement la racine on envoie une réponse 200
+                    if(fdFichierTrouve != NULL || strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
+                        fprintf(fdClient,"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 23\r\n\r\n%s Tout est OK!\r\n",nomServeur);
+                    }
+                    //sinon On envoie une réponse 404
+                    else{
+                        fprintf(fdClient,"HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 24\r\n\r\n%s 404 Not Found\r\n",nomServeur);
+                    }
+                
+                }else{
+                    //On envoie un message d'erreur si la requete ne correspond pas à une requete GET valide
+                    fprintf(fdClient,"HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 26\r\n\r\n%s 400 Bad Request\r\n",nomServeur);
+                    
+                }
+
+                 //On reinitialise le buffer
+                memset(bufferFirstLine,0,strlen(bufferFirstLine));
+                memset(bufferContenu,0,strlen(bufferContenu));
+
+                //On vérifie que le descripteur ne soit pas NULL avant de les fermer
+                if(fdFichierTrouve != NULL){
+                    fclose(fdFichierTrouve);   
+                }
+                if(fdClient != NULL){
                     fclose(fdClient);
-                             
+                }
+              
+                         
             }
         }else{      /*Processus père*/
 

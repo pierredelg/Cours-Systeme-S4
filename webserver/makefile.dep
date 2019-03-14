@@ -1,3 +1,2 @@
 socket.o: socket.c
 main.o: main.c socket.h
-tp1.o: tp1.c
