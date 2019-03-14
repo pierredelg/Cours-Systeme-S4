@@ -31,6 +31,11 @@ void traitement_signal(int sig){
 
 void initialiser_signaux(){
 
+  
+  if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
+    perror ("signal");
+  }
+
     /* On utilise la fonction signal() afin de modifier le comportement du programme lors de la réception d'un signal
        les parametres sont donc le signal de réception(SIGPIPE)
        le deuxieme parametre est le comportement à adopter(SIG_IGN) ici ignorer ce signal
@@ -65,11 +70,13 @@ int main (){
 
     initialiser_signaux();
 
-    char buffer[128] = "Bienvenue sur le serveur Pawnee\n";
+    char bufferFirstLine[128] = "Bienvenue sur le serveur Pawnee\n";
+    char bufferContenu[128];
     int socket_client;
     int pid;
-    int i;
     FILE *fdClient;
+    char * nomServeur = "<Pawnee>";
+    char cheminFichier[1024];
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -101,31 +108,35 @@ int main (){
         
             while(1){
 
-                //On récupere les données envoyées par le client
-                if(fgets(buffer, 128, fdClient) != NULL){
+                //On récupere la premiere ligne envoyée par le client
+                fgets(bufferFirstLine, 128, fdClient);
 
-                    if(strcmp(buffer, "GET / HTTP/1.1\r\n") != 0 ){
+                //On lit la ligne tant que le contenu est different de "\r\n"
+                while(strcmp(bufferContenu,"\r\n") != 0){
 
-                        fprintf(fdClient, "%s %s", "<Pawnee>","HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad request\r\n");
+                    fgets(bufferContenu, 128, fdClient);
+            
+                }
+                    cheminFichier = 
+                    //On compare la premiere ligne et on verifie que "GET / HTTP/1.1\r\n"    
+                    if(strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
+
+
+                        fprintf(fdClient,"%s\nHTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 14\r\n\r\nTout est OK!\r\n",nomServeur);
+
+                       
                     }else{
-
-                        //On affiche le résultat de la lecture sur la sortie standard
-                        for(i = 0 ; i < 128 ; i++ ){
-                            printf("%c",buffer[i]);
-                        }
+                        //On envoie un message d'erreur si la requete ne correspond pas au "GET / HTTP/1.1\r\n"
+                        fprintf(fdClient,"%s\nHTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad request\r\n",nomServeur);
                         
-                        //On les renvoie au client
-                        fprintf(fdClient, "%s %s", "<Pawnee>",buffer);
-                        
-                         //On reinitialise le buffer
-                        memset(buffer,0,strlen(buffer));
                     }
-                }else{
+
+                     //On reinitialise le buffer
+                    memset(bufferFirstLine,0,strlen(bufferFirstLine));
+                    memset(bufferContenu,0,strlen(bufferContenu));
 
                     fclose(fdClient);
-                    exit(0);
-                    break;
-                }             
+                             
             }
         }else{      /*Processus père*/
 
