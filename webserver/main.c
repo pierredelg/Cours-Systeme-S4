@@ -66,7 +66,7 @@ void initialiser_signaux(){
     }
 }
 
-int main (){
+int main(){
 
     initialiser_signaux();
 
@@ -74,9 +74,9 @@ int main (){
     char bufferContenu[128];
     int socket_client;
     int pid;
+    char *nomServeur = "<Pawnee>";
     FILE *fdClient;
-    char * nomServeur = "<Pawnee>";
-    char cheminFichier[1024];
+    //char cheminFichier[1024];
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -117,7 +117,7 @@ int main (){
                     fgets(bufferContenu, 128, fdClient);
             
                 }
-                    cheminFichier = 
+                    //cheminFichier = 
                     //On compare la premiere ligne et on verifie que "GET / HTTP/1.1\r\n"    
                     if(strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
 
