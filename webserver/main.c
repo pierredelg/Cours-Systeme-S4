@@ -128,9 +128,6 @@ int main(){
                 while(strcmp(bufferContenu,"\r\n") != 0){
 
                     fgets(bufferContenu, 128, fdClient);
-                    if(strcmp(bufferContenu," \r\n") == 0){
-                        break;
-                    }
                 }
              
                 indiceBuffer = 4;   //Ici l'indice commence à 4 pour récuperer le chemin aprés le GET
