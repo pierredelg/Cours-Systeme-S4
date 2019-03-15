@@ -181,8 +181,8 @@ int main(){
       fdClient = fdopen(socket_client, "w+");
 
       if(fdClient == NULL){
-	perror("impossible d'ouvrir le socket");
-	return -1;
+      	perror("impossible d'ouvrir le socket");
+      	return -1;
       }
     
       while(1){
