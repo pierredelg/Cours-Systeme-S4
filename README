@@ -6,5 +6,19 @@
 
 ************************  DIFFICULTÉS RENCONTRÉES  *****************************
 
-- L'étape des signaux a été un problème car non vu précédemment.
-- 
+- Nous avons eu du mal à gérer plusieurs connexions simultanément car le serveur doit, en parallèle attendre des connexions mais aussi lire les données envoyées par les clients, et suite à un  problème dans notre code, nous n'arrivions à récupérer et lire les données envoyées une fois sur deux seulement.
+
+- L'étape des signaux a été un problème car nous ne les avions jamais vu précédemment.
+
+- Nous avons été embetté par l'étape 6 au niveau de la mise au propre du code car nous avions jusqu'alors tout mis en vrac dans la méthode main. Nous avons perdu du temps sur le 6.1 car nous n'avions pas bien compris l'énoncé, en effet nous n'avions pas vraiment compris le fonctionnement de la méthode fgets. 
+Nous avons alors rencontré à de nombreuses reprises l'erreur : (52) Empty reply from server.
+
+- Pour la méthode send_status du 6.4, nous avons eu du mal à clarifier le code, car nous ne retournions que la première ligne de la requête, ainsi, la partie concernant les données était ignorée et nous n'avions pas de réponse.
+
+PS : Nous avons perdu énormément de temps à réécrire la méthode parse_http_request car nous n'avons pas vu qu'elle était disponible sur moodle. Nous avons joint notre version de cette méthode avec le commit nommé "parse_http_request remplacee".
+
+*************************** Ce qui a été fait *********************************************
+
+Le travail a été effectué jusqu'à la partie 6.3.
+
+
