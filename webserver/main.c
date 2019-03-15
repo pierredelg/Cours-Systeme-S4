@@ -11,25 +11,17 @@
 #include <fcntl.h>
 
 
-void traitement_signal(int sig){
+void traitement_signal(){
 
     pid_t pidFin;
     int statut;
 
-    printf("Signal %d reçu\n",sig); //SIGCHLD = 17
-
     //On lance le waitpid afin de terminer les processus zombies fils
 
-    pidFin = waitpid(-1, &statut, WNOHANG);
+    while(pidFin != -1){
+      pidFin = waitpid(-1, &statut, WNOHANG);
+    }
 
-    //gestion erreur waitpid
-    if (pidFin == -1) {           
-        perror("erreur du waitpid");
-    }
-    //On verifie le statut de fin du fils
-    if (WIFEXITED(statut)){
-        printf("Processus fils n°%d terminé\n",pidFin);
-    }
 }
 
 void initialiser_signaux(){
@@ -39,34 +31,43 @@ void initialiser_signaux(){
     perror ("signal");
   }
 
-    /* On utilise la fonction signal() afin de modifier le comportement du programme lors de la réception d'un signal
-       les parametres sont donc le signal de réception(SIGPIPE)
-       le deuxieme parametre est le comportement à adopter(SIG_IGN) ici ignorer ce signal
-    */
-    if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
-        perror ("signal");
-    }
+  /* On utilise la fonction signal() afin de modifier le comportement du programme lors de la réception d'un signal
+     les parametres sont donc le signal de réception(SIGPIPE)
+     le deuxieme parametre est le comportement à adopter(SIG_IGN) ici ignorer ce signal
+  */
+  if (signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
+    perror ("signal");
+  }
 
-    //on déclare une structure décrivant le comportement a avoir lors de la réception du signal SIGCHLD
-    struct sigaction sa;
+  //on déclare une structure décrivant le comportement a avoir lors de la réception du signal SIGCHLD
+  struct sigaction sa;
     
-    //appel de la méthode traitement_signal() lors de la réception du signal SIGCHLD
-    sa.sa_handler = &traitement_signal;
+  //appel de la méthode traitement_signal() lors de la réception du signal SIGCHLD
+  sa.sa_handler = &traitement_signal;
 
-    //aucun signal a bloquer lors du traitement de ce signal (utilisation de la méthode sigemptyset() == NULL)
-    sigemptyset(&sa.sa_mask);
+  //aucun signal a bloquer lors du traitement de ce signal (utilisation de la méthode sigemptyset() == NULL)
+  sigemptyset(&sa.sa_mask);
 
-    //On utilise SA_RESTART pour redémarrer automatiquement les fonctions interrompues
-    sa.sa_flags = SA_RESTART ;
+  //On utilise SA_RESTART pour redémarrer automatiquement les fonctions interrompues
+  sa.sa_flags = SA_RESTART ;
 
-    /*On utilise sigaction qui d’attribuer un comportement spécifique à la réception d’un signal
+  /*On utilise sigaction qui d’attribuer un comportement spécifique à la réception d’un signal
     1er parametre :  SIGCHLD (le signal) 
     2eme parametre : sa qui est la structure definie avant et décrivant le comportement du programme
-    */
-    if(sigaction(SIGCHLD,&sa,NULL) == -1){
+  */
+  if(sigaction(SIGCHLD,&sa,NULL) == -1){
 
-        perror("sigaction(SIGCHLD)");
-    }
+    perror("sigaction(SIGCHLD)");
+  }
+}
+
+char * fgets_or_exit ( char * buffer , int size , FILE * fdClient ){
+  
+  if(fgets(buffer, size, fdClient) == NULL)
+    exit(1);
+
+  return buffer;
+
 }
 
 int main(){
@@ -120,16 +121,18 @@ int main(){
 
            
             while(1){
-
+	      
                 //On récupere la premiere ligne envoyée par le client
                 fgets(bufferFirstLine, 128, fdClient);
 
                 //On lit la ligne tant que le contenu est different de "\r\n"
-                while(strcmp(bufferContenu,"\r\n") != 0){
+		while(strcmp(bufferContenu,"\r\n") != 0){
 
-                    fgets(bufferContenu, 128, fdClient);
-                }
-             
+		  fgets_or_exit (bufferContenu , 128 , fdClient );
+	        }
+
+	
+		
                 indiceBuffer = 4;   //Ici l'indice commence à 4 pour récuperer le chemin aprés le GET
                 indiceChemin = 0;
 
@@ -179,7 +182,7 @@ int main(){
                 if(fdClient != NULL){
                     fclose(fdClient);
                 }
-              
+		exit(0);
                          
             }
         }else{      /*Processus père*/
