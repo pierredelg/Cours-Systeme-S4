@@ -11,7 +11,7 @@
 #include <fcntl.h>
 
 
-void traitement_signal(int sig){
+void traitement_signal(){
 
      pid_t pidFin;
 
@@ -59,6 +59,68 @@ void initialiser_signaux(){
     }
 }
 
+int parse_http_request(const char * request_line, http_request * request){
+
+    // request-line = method SP request-target SP HTTP-version CRLF
+    // method doit être GET dans notre cas ;
+    // request-target correspond à la cible (la partie chemin de l’URL) ;
+    // SP représente un seul et unique espace ;
+    // HTTP-version correspond dans notre cas à HTTP/1.0 ou HTTP/1.1 ;
+    // CRLF est la succession du caractère ’\r’ et du caractère ’\n’ ou uniquement le caractère ’\n’
+
+    int indiceBuffer = 0;   //Ici l'indice commence à 4 pour récuperer le chemin aprés le GET
+    int indiceChemin = 0;
+    char method [20] = {""};
+
+    //On copie la methode (tant que l'on ne rencontre pas d'espace)
+    while(request_line[indiceBuffer] != 32){
+
+        method[indiceChemin] = request_line[indiceBuffer];
+        indiceBuffer++;
+        indiceChemin++;
+    }
+
+    //Si la methode correspond au GET
+    if(strcmp(method,"GET") == 0){
+
+        //On place le nom de la methode dans la structure
+        request->method = HTTP_GET;
+
+    }else{
+        
+        request->method = HTTP_UNSUPPORTED;
+    }
+
+    //On verifie qu'il y ait bien un seul espace
+    if(request_line[indiceBuffer] == 32 && request_line[indiceBuffer + 1] == 32){
+        return 0;//PROBLEME
+    }
+
+    char HTTP_version [8]= {""};
+    indiceChemin = 0;
+    indiceBuffer++;
+
+    while(request_line[indiceBuffer] != 32){
+
+        HTTP_version[indiceChemin] = request_line[indiceBuffer];
+        indiceBuffer++;
+        indiceChemin++;
+    }
+
+    if(strcmp(HTTP_version,"HTTP/1.0") != 0 && strcmp(HTTP_version,"HTTP/1.1") != 0){
+        return 0;//PROBLEME
+    }
+
+    indiceBuffer++;
+    
+    if(request_line[indiceBuffer] != '\n' && request_line[indiceBuffer] != '\r' && request_line[indiceBuffer + 1] != '\n'){
+        return 0;//PROBLEME
+    }
+    
+
+    return 1;//OK
+}
+
 int main(){
 
     initialiser_signaux();
@@ -73,7 +135,7 @@ int main(){
     int indiceBuffer = 0;
     int indiceChemin = 0;
     FILE* fdFichierTrouve = NULL;
-    
+   
 
     //On crée le socket serveur sur le port 8080
     //methode socket() + bind()
@@ -107,7 +169,6 @@ int main(){
                 perror("impossible d'ouvrir le socket");
                 return -1;
             }
-
            
             while(1){
 
@@ -191,3 +252,4 @@ int main(){
     ->la commande 'ps -u nomUtilisateur' permet de voir la liste des processus
 */
 }
+
