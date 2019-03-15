@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "socket.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -10,9 +9,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "socket.h"
+#include "http_parse.h"
+
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#define in_range(a,b,c) ((a) < (b) ? 0 : ((a) > (c) ? 0 : 1))
+
+
 
 void traitement_signal(){
-
 
   pid_t pidFin;
 
@@ -81,22 +86,71 @@ void send_response ( FILE * client , int code , const char * reason_phrase ,cons
   fflush(client);
 }
 
+int parse_http_request(const char *request_line , http_request *request)
+{
+
+  if (strncmp(request_line, "GET ", 4) != 0)
+    {
+      request->method = HTTP_UNSUPPORTED;
+      return 0;
+    }
+  request->method = HTTP_GET;
+  /* Find the target start */
+  const char *target = strchr(request_line, ' ');
+  if (target == NULL)
+    return 0;
+  target++;
+  /* Find target end and copy target to request */
+  char *target_end = strchr(target, ' ');
+  if (target_end == NULL)
+    return 0;
+  int size = min(target_end - target, MAX_TARGET_SIZE);
+  strncpy(request->target, target, size);
+  /* If target is more than size, \0 is not add to dst, so... */
+  request->target[size] = '\0';
+
+  /* Now http version (only support HTTP/M.m version format) */
+  /* Quote from RFC:
+     Additionally, version numbers have been restricted to
+     single digits, due to the fact that implementations are known to
+     handle multi-digit version numbers incorrectly.
+  */
+  char *version = target_end + 1;
+  if (strncmp(version, "HTTP/", 5) != 0)
+    return 0;
+  if (!in_range(version[5], '0', '9')) // major
+    return 0;
+  if (version[6] != '.') // mandatory dot
+    return 0;
+  if (!in_range(version[7], '0', '9')) // minor
+    return 0;
+  request->http_major = version[5] - '0';
+  request->http_minor = version[7] - '0';
+  return 1;
+}
+
+void skip_headers(FILE * client){
+
+  char buffer[128];
+
+  while(strcmp(buffer,"\r\n") != 0){
+
+    fgets_or_exit (buffer,128, client);
+  }
+
+}
 
 int main(){
 
   initialiser_signaux();
 
-  char bufferFirstLine[128] = "Bienvenue sur le serveur Pawnee\n";
+  char bufferFirstLine[128] = "";
   char bufferContenu[128] = {" "};
   int socket_client = 0;
   int pid = 0;
-  // char *nomServeur ="<Pawnee>";
   FILE *fdClient = NULL;
-  char chemin[128] = {" "} ;
-  int indiceBuffer = 0;
-  int indiceChemin = 0;
   FILE* fdFichierTrouve = NULL;
-    
+  http_request request;
 
   //On crée le socket serveur sur le port 8080
   //methode socket() + bind()
@@ -130,43 +184,18 @@ int main(){
 	perror("impossible d'ouvrir le socket");
 	return -1;
       }
-
-           
+    
       while(1){
-	      
-	//On récupere la premiere ligne envoyée par le client
-	fgets_or_exit (bufferFirstLine , 128 , fdClient );
-	
-	//On lit la ligne tant que le contenu est different de "\r\n"
-	while(strcmp(bufferContenu,"\r\n") != 0){
-	  fgets_or_exit (bufferContenu , 128 , fdClient );
-	}
 
-	
-		
-	indiceBuffer = 4;   //Ici l'indice commence à 4 pour récuperer le chemin aprés le GET
-	indiceChemin = 0;
+	//On receptionne la premiere ligne  
+	fgets_or_exit(bufferFirstLine,128,fdClient);
 
-	//On copie le chemin de la requete GET tant que l'on ne rencontre pas d'espace
-	while(bufferFirstLine[indiceBuffer] != 32){
-	  chemin[indiceChemin] = bufferFirstLine[indiceBuffer];
-	  indiceBuffer++;
-	  indiceChemin++;
-	}
-                
-	//On essaye d'ouvrir le fichier du chemin
-	//Si le fopen retourne NULL c'est que le fichier n'existe pas
-	if(fopen(chemin,"r") == NULL){
-	  printf("Pas de fichier : %s\n",chemin);
-	}
-                
-	//On crée une requete GET valide avec le chemin récuperé
-	char testMethode[128] = "GET ";
-	strcat(testMethode,chemin);
-	strcat(testMethode," HTTP/1.1\r\n");
+	//On passe toutes les lignes d'entetes
+	skip_headers(fdClient);
 
 	//On compare la premiere ligne et on verifie que la requete recue est valide 
-	if(strcmp(bufferFirstLine,testMethode) == 0){
+	if(parse_http_request(bufferFirstLine,&request) == 1){
+
 
 	  //si le fichier existe ou si on demande simplement la racine on envoie une réponse 200
 	  if(fdFichierTrouve != NULL || strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
@@ -202,18 +231,11 @@ int main(){
 
       //On ferme le socket client
       close(socket_client);
+
     }
   } 
   //On ferme les sockets
   printf("Fermeture de la socket serveur\n");
   close(socket_serveur);
-
-  /*  
-      -> utiliser la commande 'nc localhost 8080' pour tester et ouvrir un client
-
-      -> curl http://localhost:8080/
-    
-      ->la commande 'ps -u nomUtilisateur' permet de voir la liste des processus
-  */
 }
 
