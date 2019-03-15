@@ -13,22 +13,12 @@
 
 void traitement_signal(int sig){
 
-    pid_t pidFin;
-    int statut;
-
-    printf("Signal %d reçu\n",sig); //SIGCHLD = 17
+     pid_t pidFin;
 
     //On lance le waitpid afin de terminer les processus zombies fils
+    while(pidFin != -1){
 
-    pidFin = waitpid(-1, &statut, WNOHANG);
-
-    //gestion erreur waitpid
-    if (pidFin == -1) {           
-        perror("erreur du waitpid");
-    }
-    //On verifie le statut de fin du fils
-    if (WIFEXITED(statut)){
-        printf("Processus fils n°%d terminé\n",pidFin);
+        pidFin = waitpid(-1, NULL, WNOHANG);
     }
 }
 
@@ -153,11 +143,12 @@ int main(){
 
                 //On compare la premiere ligne et on verifie que la requete recue est valide 
                 if(strcmp(bufferFirstLine,testMethode) == 0){
+
                     //si le fichier existe ou si on demande simplement la racine on envoie une réponse 200
                     if(fdFichierTrouve != NULL || strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
                         fprintf(fdClient,"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 23\r\n\r\n%s Tout est OK!\r\n",nomServeur);
                     }
-                    //sinon On envoie une réponse 404
+                    //sinon on envoie une réponse 404
                     else{
                         fprintf(fdClient,"HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 24\r\n\r\n%s 404 Not Found\r\n",nomServeur);
                     }
@@ -179,8 +170,8 @@ int main(){
                 if(fdClient != NULL){
                     fclose(fdClient);
                 }
-              
-                         
+                //On tue le processus fils
+                exit(0);          
             }
         }else{      /*Processus père*/
 
@@ -194,6 +185,8 @@ int main(){
 
 /*  
     -> utiliser la commande 'nc localhost 8080' pour tester et ouvrir un client
+
+    -> curl http://localhost:8080/
     
     ->la commande 'ps -u nomUtilisateur' permet de voir la liste des processus
 */
