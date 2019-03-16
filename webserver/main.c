@@ -14,7 +14,7 @@
 
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #define in_range(a,b,c) ((a) < (b) ? 0 : ((a) > (c) ? 0 : 1))
-
+#define BUFFER_SIZE 2048
 
 
 void traitement_signal(){
@@ -22,10 +22,8 @@ void traitement_signal(){
     pid_t pidFin;
 
     while(pidFin != -1){
-        pidFin = waitpid(-1, NULL, WNOHANG);
-        if(pidFin == -1){
-            perror("Erreur de confirmation de fermeture client");
-        }
+
+        pidFin = waitpid(-1, NULL, WNOHANG);    
 
     }
 
@@ -72,6 +70,7 @@ char * fgets_or_exit ( char * buffer , int size , FILE * fdClient ){
 
     if(fgets(buffer, size, fdClient) == NULL){
         perror("Erreur de lecture sur le client");
+        exit(1);
     }
     return buffer;
 }
@@ -87,11 +86,11 @@ void send_response ( FILE * client , int code , const char * reason_phrase ,cons
 
     send_status(client,code,reason_phrase);
 
-    if(fprintf(client,"%s",message_body)){
+    if(fprintf(client,"%s",message_body) < 0){
         perror("Erreur envoi réponse");
     }
 
-    if(fflush(client)){
+    if(fflush(client) == EOF){
         perror("Erreur flush fdclient");
     }
 }
@@ -147,34 +146,81 @@ int parse_http_request(const char *request_line , http_request *request)
 
 void skip_headers(FILE * client){
 
-    char buffer[128];
+    char buffer[BUFFER_SIZE];
 
     //On continue à lire sur le client tant qu'on arrive pas à la derniere ligne
     while(strcmp(buffer,"\r\n") != 0){
 
-        fgets_or_exit (buffer,128, client);
+        fgets_or_exit (buffer,BUFFER_SIZE, client);
     }
 
 }
 
 char * rewrite_target ( char * target ){
     char * delimiteur = "?";
-
-    return strtok(target,delimiteur);
+    char * resultat = strtok(target,delimiteur);
+    if(strcmp(resultat,"/") == 0){
+        return "index.html";
+    }
+    return resultat;
 }
 
-int main(){
+FILE * check_and_open ( const char * target , const char * document_root ){
 
-    initialiser_signaux();
 
+    char chemin[BUFFER_SIZE];
+    strcpy(chemin,document_root);
+    strcat(chemin,target);
+    return fopen(chemin,"r");
+}
+
+int get_file_size(int fd){
+
+    struct stat buffer;
+    
+    int resultat = fstat(fd,&buffer);
+
+    if (resultat == -1) {
+        perror("stat");
+        exit(1);
+    }
+    return buffer.st_size;
+
+}
+
+int copy(FILE *in, FILE *out){
+
+    char texte[BUFFER_SIZE];
+   return fprintf(out,"%s\n",fgets_or_exit(texte,BUFFER_SIZE,in));
+}
+int main(int argc, char** argv){
+
+   
     /*Déclaration des variables*/
-    char bufferFirstLine[128] = "";
-    char bufferContenu[128] = {" "};
+    char bufferFirstLine[BUFFER_SIZE] = "";
+    char bufferContenu[BUFFER_SIZE] = {" "};
     int socket_client = 0;
     int pid = 0;
     FILE *fdClient = NULL;
-    FILE* fdFichierTrouve = NULL;
+    FILE *fdFichierTrouve = NULL;
     http_request request;
+    char *cheminServeur = NULL;
+    FILE *fichier = NULL;
+    int tailleFichier;
+
+    //On vérifie s'il y a un argument
+    if(argc != 1){
+        cheminServeur = argv[1];
+    }
+
+    initialiser_signaux();
+
+    /*On vérifie que le chemin de racine 
+        du serveur donné en parametre est correct*/
+    if(argc != 1 && fopen(cheminServeur,"r") == NULL){
+        perror("Erreur sur le chemin de la racine du serveur");
+        exit(1);
+    }
 
     /*On crée le socket serveur sur le port 8080
         methode socket() + bind()*/
@@ -217,7 +263,7 @@ int main(){
         while(1){
 
             //On receptionne la premiere ligne  
-            fgets_or_exit(bufferFirstLine,128,fdClient);
+            fgets_or_exit(bufferFirstLine,BUFFER_SIZE,fdClient);
 
             //On passe toutes les lignes d'entetes
             skip_headers(fdClient);
@@ -225,15 +271,39 @@ int main(){
             //On compare la premiere ligne et on verifie que la requete recue est valide 
             if(parse_http_request(bufferFirstLine,&request) == 1){
 
-                //si le fichier existe ou si on demande simplement la racine on envoie une réponse 200
-                if(fdFichierTrouve != NULL || strcmp(bufferFirstLine,"GET / HTTP/1.1\r\n") == 0){
-                    send_response(fdClient , 200 , "OK", "Connection: close\r\nContent-Length: 6\r\n\r\n200 OK");
+                if(cheminServeur != NULL){
+                    //on essaye d'ouvrir la target contenue dans la requete
+                    fichier = check_and_open(request.target,cheminServeur);
+                    
+                    if (fichier == NULL){
+                        perror("Erreur d'ouverture du fichier");
+                        send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");
+                        exit(1);
+                    }
+                    else{
+
+                        fprintf(fdClient,"HTTP/1.1 200 OK\r\n");
+
+                        tailleFichier = get_file_size(fileno(fichier));
+                        tailleFichier +=8;
+                        printf("taille = %d\n", tailleFichier);
+
+                        if(fprintf(fdClient,"Content-Length: %d\r\n",tailleFichier) < 0){
+                             perror("Erreur envoi réponse Content-Length");
+                        }
+                        if(fprintf(fdClient,"Content-type: text/html; charset=utf-8\r\n\r\n") < 0){
+                             perror("Erreur envoi réponse Content-type");
+                        }
+                        while(copy(fichier,fdClient) > 0);
+
+                        fprintf(fdClient,"\r\n");
+
+                    }
                 }
-                //sinon on envoie une réponse 404
-                else{;
-                     send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");
-                }
-            }else{
+                
+                send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");    
+            }
+            else{
             	//On envoie un message d'erreur si la requete ne correspond pas à une requete GET valide
                 send_response(fdClient , 400 , "Bad Request", "Connection: close\r\nContent-Length: 15\r\n\r\n400 Bad Request");                  
             }
