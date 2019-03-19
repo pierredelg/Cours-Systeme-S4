@@ -161,7 +161,10 @@ char * rewrite_target ( char * target ){
     char * resultat = strtok(target,delimiteur);
 
     if(strcmp(resultat,"/") == 0){
-        return "index.html";
+        return "/index.html";
+    }
+    if(strstr(resultat,"../") != NULL){
+        resultat = "erreur403";
     }
     return resultat;
 }
@@ -205,7 +208,6 @@ int main(int argc, char** argv){
     int socket_client = 0;
     int pid = 0;
     FILE *fdClient = NULL;
-    FILE *fdFichierTrouve = NULL;
     http_request request;
     char *cheminServeur = NULL;
     FILE *fichier = NULL;
@@ -213,7 +215,13 @@ int main(int argc, char** argv){
 
     //On vérifie s'il y a un argument
     if(argc != 1){
-        cheminServeur = argv[1];
+        int tailleChemin = strlen(argv[1]);
+        if(*argv[tailleChemin] == 47){
+            strncpy(cheminServeur,argv[1],strlen(argv[1])-1);
+        }
+        else{
+            cheminServeur = argv[1];
+        }
     }
 
     initialiser_signaux();
@@ -277,13 +285,18 @@ int main(int argc, char** argv){
                 if(cheminServeur != NULL){
 
                     printf("target = %s\n",rewrite_target(request.target));
+
+                    if(strcmp(request.target,"erreur403") == 0){
+                        send_response(fdClient , 403 , "Forbidden", "Connection: close\r\nContent-Length: 13\r\n\r\n403 Forbidden");
+                        exit(0);
+                    }
                     //on essaye d'ouvrir la target contenue dans la requete
                     fichier = check_and_open(rewrite_target(request.target),cheminServeur);
                     
                     if (fichier == NULL){
                         perror("Erreur d'ouverture du fichier");
                         send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");
-                        exit(1);
+                        exit(0);
                     }
                     else{
                         printf("descripteur de fichier = %d\n",fileno(fichier));
@@ -305,14 +318,40 @@ int main(int argc, char** argv){
                             tailleFichier = get_file_size(fileno(fichier));
                             printf("taille = %d\n", tailleFichier);
 
-                            if(fprintf(fdClient,"Content-type: text/html; charset=ISO-8859-4\r\n") < 0){
-                                 perror("Erreur envoi réponse Content-type");
+                            if(strstr(request.target,".css") != NULL){
+                                if(fprintf(fdClient,"Content-Type:text/css;\r\n") < 0){
+                                    perror("Erreur envoi réponse Content-type");
+                                }
                             }
+                            if(strstr(request.target,".html") != NULL){
+                                if(fprintf(fdClient,"Content-Type:text/html; charset=utf-8\r\n") < 0){
+                                    perror("Erreur envoi réponse Content-type");
+                                }
+                            }
+                            if(strstr(request.target,".js") != NULL){
+                                if(fprintf(fdClient,"Content-Type:text/javascript; charset=utf-8\r\n") < 0){
+                                    perror("Erreur envoi réponse Content-type");
+                                }
+                            }
+                            if(strstr(request.target,".jpg") != NULL || strstr(request.target,".jpeg")){
+                                if(fprintf(fdClient,"Content-Type:image/jpeg;\r\n") < 0){
+                                    perror("Erreur envoi réponse Content-type");
+                                }
+                            }
+                             if(strstr(request.target,".png") != NULL){
+
+                                if(fprintf(fdClient,"Content-Type:image/png;\r\n") < 0){
+                                    perror("Erreur envoi réponse Content-type");
+                                }
+                            }
+                                                        
                             if(fprintf(fdClient,"Content-Length: %d\r\n\r\n",tailleFichier) < 0){
                                  perror("Erreur envoi réponse Content-Length");
                             }
                            
                             while(copy(fichier,fdClient) > 0);
+
+                            printf("OK %s\n\n",request.target);
                         }
                         else{
                             printf("FICHIER NON REGULIER mode  = %d\n",buffer.st_mode);
@@ -334,8 +373,8 @@ int main(int argc, char** argv){
             memset(bufferContenu,0,strlen(bufferContenu));
 
             //On vérifie que le descripteur ne soit pas NULL avant de les fermer
-            if(fdFichierTrouve != NULL){
-               fclose(fdFichierTrouve);   
+            if(fichier != NULL){
+               fclose(fichier);   
             }
             if(fdClient != NULL){
                fclose(fdClient);
