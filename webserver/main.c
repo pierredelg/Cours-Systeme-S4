@@ -159,6 +159,7 @@ void skip_headers(FILE * client){
 char * rewrite_target ( char * target ){
     char * delimiteur = "?";
     char * resultat = strtok(target,delimiteur);
+
     if(strcmp(resultat,"/") == 0){
         return "index.html";
     }
@@ -171,6 +172,7 @@ FILE * check_and_open ( const char * target , const char * document_root ){
     char chemin[BUFFER_SIZE];
     strcpy(chemin,document_root);
     strcat(chemin,target);
+    printf("chemin dans check_and_open = %s\n",chemin);
     return fopen(chemin,"r");
 }
 
@@ -191,8 +193,9 @@ int get_file_size(int fd){
 int copy(FILE *in, FILE *out){
 
     char texte[BUFFER_SIZE];
-   return fprintf(out,"%s\n",fgets_or_exit(texte,BUFFER_SIZE,in));
+   return fprintf(out,"%s",fgets_or_exit(texte,BUFFER_SIZE,in));
 }
+
 int main(int argc, char** argv){
 
    
@@ -272,8 +275,10 @@ int main(int argc, char** argv){
             if(parse_http_request(bufferFirstLine,&request) == 1){
 
                 if(cheminServeur != NULL){
+
+                    printf("target = %s\n",rewrite_target(request.target));
                     //on essaye d'ouvrir la target contenue dans la requete
-                    fichier = check_and_open(request.target,cheminServeur);
+                    fichier = check_and_open(rewrite_target(request.target),cheminServeur);
                     
                     if (fichier == NULL){
                         perror("Erreur d'ouverture du fichier");
@@ -281,25 +286,43 @@ int main(int argc, char** argv){
                         exit(1);
                     }
                     else{
+                        printf("descripteur de fichier = %d\n",fileno(fichier));
+                    
+                        struct stat buffer;
+        
+                        int resultat = fstat(fileno(fichier),&buffer);
 
-                        fprintf(fdClient,"HTTP/1.1 200 OK\r\n");
-
-                        tailleFichier = get_file_size(fileno(fichier));
-                        printf("taille = %d\n", tailleFichier);
-
-                        if(fprintf(fdClient,"Content-type: text/html; charset=ISO-8859-4\r\n") < 0){
-                             perror("Erreur envoi réponse Content-type");
+                        if (resultat == -1) {
+                            perror("stat");
+                            exit(1);
                         }
-                        if(fprintf(fdClient,"Content-Length: %d\r\n\r\n",tailleFichier) < 0){
-                             perror("Erreur envoi réponse Content-Length");
-                        }
-                       
-                        while(copy(fichier,fdClient) > 0);
 
+                        if((buffer.st_mode & S_IFMT )== S_IFREG){
+                            printf("FICHIER REGULIER mode  = %d\n",buffer.st_mode);
+
+                             fprintf(fdClient,"HTTP/1.1 200 OK\r\n");
+
+                            tailleFichier = get_file_size(fileno(fichier));
+                            printf("taille = %d\n", tailleFichier);
+
+                            if(fprintf(fdClient,"Content-type: text/html; charset=ISO-8859-4\r\n") < 0){
+                                 perror("Erreur envoi réponse Content-type");
+                            }
+                            if(fprintf(fdClient,"Content-Length: %d\r\n\r\n",tailleFichier) < 0){
+                                 perror("Erreur envoi réponse Content-Length");
+                            }
+                           
+                            while(copy(fichier,fdClient) > 0);
+                        }
+                        else{
+                            printf("FICHIER NON REGULIER mode  = %d\n",buffer.st_mode);
+
+                        }
                     }
-                }
+                }else{
                 
-                send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");    
+                    send_response(fdClient , 404 , "Not Found", "Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found");
+                }   
             }
             else{
             	//On envoie un message d'erreur si la requete ne correspond pas à une requete GET valide
