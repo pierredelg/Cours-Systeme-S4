@@ -285,18 +285,16 @@ int main(int argc, char** argv){
                         fprintf(fdClient,"HTTP/1.1 200 OK\r\n");
 
                         tailleFichier = get_file_size(fileno(fichier));
-                        tailleFichier +=8;
                         printf("taille = %d\n", tailleFichier);
 
-                        if(fprintf(fdClient,"Content-Length: %d\r\n",tailleFichier) < 0){
-                             perror("Erreur envoi réponse Content-Length");
-                        }
-                        if(fprintf(fdClient,"Content-type: text/html; charset=utf-8\r\n\r\n") < 0){
+                        if(fprintf(fdClient,"Content-type: text/html; charset=ISO-8859-4\r\n") < 0){
                              perror("Erreur envoi réponse Content-type");
                         }
+                        if(fprintf(fdClient,"Content-Length: %d\r\n\r\n",tailleFichier) < 0){
+                             perror("Erreur envoi réponse Content-Length");
+                        }
+                       
                         while(copy(fichier,fdClient) > 0);
-
-                        fprintf(fdClient,"\r\n");
 
                     }
                 }

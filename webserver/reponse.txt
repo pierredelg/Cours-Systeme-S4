@@ -39,3 +39,8 @@ Donc la connexion est refusée.
 	Le chemin de la ressource (/)
 	La version du protocole (HTTP/1.1)
 
+
+	7.3 Test du programme
+
+1)
+	
